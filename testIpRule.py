@@ -44,7 +44,7 @@ def testPkg(table, proto, tsIp=None, tdIp=None, tsPort=-1, tdPort=-1):
                 print "Rule", "src:", rule.src, "dst:", \
                     rule.dst, "protocol", rule.protocol
                 print "Target:",
-                print rule.target
+                print rule.target +"\n"
                 return rule.target
 
         print "======================="
@@ -107,22 +107,29 @@ class TestIptable(unittest.TestCase):
         pass
 
     def test_protocol(self):
+        print "test_rule: protocol: icmp; src: 10.1.3.4; dst: 172.31.25.23"
         self.assertEqual(testPkg(table, 'icmp', '10.1.3.4', '172.31.25.23'), "DROP")
 
     def test_port(self):
+        print "test_rule: protocol: tcp; src: 192.168.1.100; dst: 172.22.33.106; sport:10; dport:22"
         self.assertEqual(testPkg(table, 'tcp', '192.168.1.100', '172.22.33.106', 10, 22), 'DROP')
+        print "test_rule: protocol: tcp; src: 192.168.1.100; dst: 172.22.33.106; sport:10; dport:34"
         self.assertEqual(testPkg(table, 'tcp', '192.168.1.100', '172.22.33.106', 10, 34), 'QUEUE')
 
     def test_srcip(self):
+        print "test_rule: protocol: udp; src: 192.168.1.2;"
         self.assertEqual(testPkg(table, 'udp', '192.168.1.2'), 'DROP')
 
     def test_subnet(self):
+        print "test_rule: protocol: tcp; src: 10.1.3.4"
         self.assertEqual(testPkg(table, 'tcp', '10.1.3.4'), 'ACCEPT')
 
     def test_iprange(self):
+        print "test_rule: protocol: tcp; src: 192.168.1.150; dst: 172.22.33.106; sport:10; dport:22"
         self.assertEqual(testPkg(table, 'tcp', '192.168.1.150', '172.22.33.106', 10, 22), 'DROP')
 
     def test_normal(self):
+        print "test_rule: protocol: tcp; src: 192.168.5.233; dst: 25.34.23.24"
         self.assertEqual(testPkg(table, 'tcp', '192.168.5.233', '25.34.23.24'), 'QUEUE')
 
 if __name__ == '__main__':
