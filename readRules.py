@@ -45,9 +45,9 @@ def createRule(cmdDic):
 
     return rule
 
-def setUp():
+def setUp(file):
     table = iprule.Table(iprule.Table.FILTER)
-    with open('rules.txt', 'r') as f:
+    with open(file, 'r') as f:
 
         for line in f.readlines():
             right_cmds = True
@@ -94,6 +94,3 @@ def setUp():
                 print "chain_R_len", len(chain._rules)
 
     return table
-
-#setUp()
-#setUp()

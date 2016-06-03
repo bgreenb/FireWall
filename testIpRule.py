@@ -98,7 +98,7 @@ def ipMatch2(ip, ipRange):
 class TestIptable(unittest.TestCase):
     """docstring for """
     global table
-    table = rl.setUp()
+    table = rl.setUp('rules.txt')
 
     def setUp(self):
         pass

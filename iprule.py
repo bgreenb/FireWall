@@ -1,3 +1,4 @@
+from netaddr import *
 
 class Match(object):
     def __init__(self, name, rule=None):
@@ -148,3 +149,89 @@ class Table(object):
             raise ValueError("nothing to delete")
         else:
             del self.chains[chain.name]
+
+class Comparison(object):
+    def __init__(self, table):
+        self.table = table
+
+    def portMatch(self, portnum, portRange):
+        ports = [int(s) for s in portRange]
+        if len(ports) == 0 or portnum == -1:
+            return True
+        elif len(ports) == 1:
+            if portnum == ports[0]:
+                return True
+        else:
+            if portnum >= ports[0] and portnum <= ports[1]:
+                return True
+        return False
+
+    # ipMatch1 is used to test -s with ip subnet
+    def ipMatch1(self, ip, cmpIP):
+        if cmpIP == None or cmpIP == '0.0.0.0/0.0.0.0':
+            return True
+        if ip ==None:
+            return False
+        if '/' in cmpIP:
+            ipset = IPSet([cmpIP])
+            if ip in ipset:
+                return True
+        else:
+            if ip == cmpIP:
+                return True
+
+        return False
+
+    #ipMatch2 is used to test ipRange
+    def ipMatch2(self, ip, ipRange):
+        if len(ipRange) == 0:
+            return True
+        if ip == None:
+            return False
+        if len(ipRange) == 2:
+            iprange = IPRange(ipRange[0], ipRange[1])
+            if ip in iprange:
+                return True
+        elif ip == ipRange[0]:
+            return True
+
+        return False
+
+    def compare(self, proto, tsIp=None, tdIp=None, tsPort=-1, tdPort=-1):
+
+        matched_rule = {}
+        for key in self.table.chains:
+            chain = self.table.chains[key]
+
+            for rule in chain._rules:
+                dport = []
+                sport = []
+                srange = []
+                drange = []
+                src = rule.src
+                dst = rule.dst
+
+                if proto != rule.protocol:
+                    continue
+
+                for match in rule._matches:
+                    if 'dport' in dir(match):
+                        dport = match.dport.split(':')
+                    if 'sport' in dir(match):
+                        sport = match.sport.split(':')
+                    if 'src_range' in dir(match):
+                        srange = match.src_range.split('-')
+                    if 'dst_range' in dir(match):
+                        drange = match.dst_range.split('-')
+
+                if self.ipMatch1(tsIp, src) and self.ipMatch1(tdIp, dst) \
+                and self.portMatch(tsPort, sport) and self.portMatch(tdPort, dport) \
+                and self.ipMatch2(tsIp, srange) and self.ipMatch2(tdIp, drange):
+                    matched_rule['src'] = tsIp
+                    matched_rule['dst'] = tdIp
+                    matched_rule['proto'] = rule.protocol
+                    matched_rule['target'] = rule.target
+
+                    return matched_rule
+
+        return matched_rule
