@@ -122,11 +122,11 @@ class MyFireWall(app_manager.RyuApp):
             if len(matched_rule)==0 or out_port == ofproto.OFPP_FLOOD:
                 pass
             elif matched_rule['target'] == 'ACCEPT':
-                match = parser.OFPMatch(ipv4_dst=dstIp, eth_type=0x800)
+                match = parser.OFPMatch(ipv4_dst=dstIp, ip_proto=ipProto, eth_type=0x800)
                 self.add_flow(datapath, 1, match, actions_forward)
                 #  accept, forward action
             else:
-                match = parser.OFPMatch(ipv4_dst=dstIp, eth_type=0x800)
+                match = parser.OFPMatch(ipv4_dst=dstIp, ip_proto=ipProto, eth_type=0x800)
                 self.add_flow(datapath, 1, match, actions_drop)
 
 
