@@ -144,12 +144,12 @@ class MyFireWall(app_manager.RyuApp):
                     return
 
                 if matched_rule['target'] == 'ACCEPT':
-                    match = parser.OFPMatch(ipv4_dst=dstIp, ip_proto=ipProto,
+                    match = parser.OFPMatch(ipv4_src=srcIp, ipv4_dst=dstIp, ip_proto=ipProto,
                                             tcp_src=tcp_sport, tcp_dst=tcp_dport, eth_type=0x800)
                     self.add_flow(datapath, 1, match, actions_forward, LIFETIME_ROUTE)
                     #  accept, forward action
                 elif matched_rule['target'] == 'DROP':
-                    match = parser.OFPMatch(ipv4_dst=dstIp, ip_proto=ipProto,
+                    match = parser.OFPMatch(ipv4_src=srcIp, ipv4_dst=dstIp, ip_proto=ipProto,
                                             tcp_src=tcp_sport, tcp_dst=tcp_dport, eth_type=0x800)
                     self.add_flow(datapath, 1, match, actions_drop, LIFETIME_ROUTE)
                 else:
@@ -170,12 +170,12 @@ class MyFireWall(app_manager.RyuApp):
                     return
 
                 if matched_rule['target'] == 'ACCEPT':
-                    match = parser.OFPMatch(ipv4_dst=dstIp, ip_proto=ipProto,
+                    match = parser.OFPMatch(ipv4_src=srcIp, ipv4_dst=dstIp, ip_proto=ipProto,
                                             udp_src=udp_sport, udp_dst=tcp_dport, eth_type=0x800)
                     self.add_flow(datapath, 1, match, actions_forward, LIFETIME_ROUTE)
                     #  accept, forward action
                 elif matched_rule['target'] == 'DROP':
-                    match = parser.OFPMatch(ipv4_dst=dstIp, ip_proto=ipProto,
+                    match = parser.OFPMatch(ipv4_src=srcIp, ipv4_dst=dstIp, ip_proto=ipProto,
                                             udp_src=udp_sport, udp_dst=udp_dport, eth_type=0x800)
                     self.add_flow(datapath, 1, match, actions_drop, LIFETIME_ROUTE)
                 else:
@@ -187,11 +187,11 @@ class MyFireWall(app_manager.RyuApp):
                 print "matched_rule: ", matched_rule
 
                 if matched_rule['target'] == 'ACCEPT':
-                    match = parser.OFPMatch(ipv4_dst=dstIp, ip_proto=ipProto, eth_type=0x800)
+                    match = parser.OFPMatch(ipv4_src=srcIp, ipv4_dst=dstIp, ip_proto=ipProto, eth_type=0x800)
                     self.add_flow(datapath, 1, match, actions_forward, LIFETIME_ROUTE)
                     #  accept, forward action
                 elif matched_rule['target'] == 'DROP':
-                    match = parser.OFPMatch(ipv4_dst=dstIp, ip_proto=ipProto, eth_type=0x800)
+                    match = parser.OFPMatch(ipv4_src=srcIp, ipv4_dst=dstIp, ip_proto=ipProto, eth_type=0x800)
                     self.add_flow(datapath, 1, match, actions_drop, LIFETIME_ROUTE)
                 else:
                     # for pkts without a matched rule
