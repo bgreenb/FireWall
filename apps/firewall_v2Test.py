@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*
 """
-#this version support delete a flow after a specific time
-#and support port match rules
+this version support delete a flow after a specific time
+and support port match rules
 """
 import sys
 sys.path.append("/home/bsg/FireWall")
@@ -19,7 +19,7 @@ from ryu.lib.packet import arp
 from ryu.lib.packet import ipv4
 from ryu.lib.packet import tcp
 from ryu.lib.packet import udp
-import iprule
+import ipruleTest
 import readRules as rl
 
 APP_COOKIE = 0
@@ -33,8 +33,8 @@ class MyFireWall(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         super(MyFireWall, self).__init__(*args, **kwargs)
         self.mac_to_port = {}
-        self.table = rl.setUp('simpleRules.txt')
-        self.comparison = iprule.Comparison(self.table)
+        self.table = rl.setUp('simpleRulesTest.txt')
+        self.comparison = ipruleTest.Comparison(self.table)
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -123,6 +123,7 @@ class MyFireWall(app_manager.RyuApp):
         actions_drop = []
         actions_forward = [parser.OFPActionOutput(out_port)]
 
+
         if pkt_ipv4:
             #matched_rule = self.comparison.compare(PROTOCOLS[ipProto], srcIp, dstIp)
             #print "matched_rule: ", matched_rule
@@ -158,8 +159,8 @@ class MyFireWall(app_manager.RyuApp):
                     return
 
             elif ipProto == 17:
-                #tcp pkt
-                pkt_tcp = pkt.get_protocol(udp.udp)
+                #udp pkt
+                pkt_udp = pkt.get_protocol(udp.udp)
                 print "####pkt_udp", pkt_udp
 
                 udp_sport = pkt_udp.src_port
@@ -167,6 +168,7 @@ class MyFireWall(app_manager.RyuApp):
 
                 matched_rule = self.comparison.compare(PROTOCOLS[ipProto], srcIp, dstIp, udp_sport, tcp_dport)
                 print "matched_rule: ", matched_rule
+
                 if not matched_rule:
                     return
 
@@ -187,6 +189,8 @@ class MyFireWall(app_manager.RyuApp):
                 matched_rule = self.comparison.compare(PROTOCOLS[ipProto], srcIp, dstIp)
                 print "matched_rule: ", matched_rule
 
+                print "Rule Target %s", matched_rule['target']
+                
                 if matched_rule['target'] == 'ACCEPT':
                     match = parser.OFPMatch(ipv4_src=srcIp, ipv4_dst=dstIp, ip_proto=ipProto, eth_type=0x800)
                     self.add_flow(datapath, 1, match, actions_forward, LIFETIME_ROUTE)

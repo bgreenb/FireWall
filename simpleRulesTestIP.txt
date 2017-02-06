@@ -1,0 +1,6 @@
+iptables -A INPUT -p icmp -s 10.3.255.242 -d 10.3.255.243 -j ACCEPT
+iptables -A INPUT -p icmp -s 10.3.255.243 -d 10.3.255.242 -j ACCEPT
+iptables -A INPUT -p icmp -s 10.3.255.244 -d 10.3.255.242 -j ACCEPT
+iptables -A INPUT -p icmp -s 10.3.255.242 -d 10.3.255.244 -j ACCEPT
+iptables -A INPUT -p tcp  -s 10.3.255.243 -d 10.3.255.242 -j ACCEPT
+iptables -A INPUT -p tcp  -s 10.3.255.242 -d 10.3.255.243 -j ACCEPT

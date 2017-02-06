@@ -1,17 +1,24 @@
 import os
-import iprule
+import ipruleTest
 
-commands = ['-A', '-I', '-R', '-p', '-s', '-d', '-sport', '-dport', '-m', '-src-range', '-dst-range', '-j']
+commands = ['-A', '-I', '-R', '-P', '-p', '-s', '-d', '-sport', '-dport', '-m', '-src-range', '-dst-range', '-j', '-g','-sg','-dg']
 
 def createRule(cmdDic):
-    rule = iprule.Rule()
+    rule = ipruleTest.Rule()
     if '-s' in cmdDic:
         rule.src = cmdDic['-s']
     if '-d' in cmdDic:
         rule.dst = cmdDic['-d']
+    if '-g' in cmdDic:
+        rule.sgroup = cmdDic['-g']
+        rule.dgroup = cmdDic['-g']
+    if '-sg' in cmdDic:
+        rule.sgroup = cmdDic['-sg']
+    if '-dg' in cmdDic:
+        rule.dgroup = cmdDic['-dg']
     if '-p' in cmdDic:
         rule.protocol = cmdDic['-p']
-        match = iprule.Match(rule, cmdDic['-p'])
+        match = ipruleTest.Match(rule, cmdDic['-p'])
         if '-dport' in cmdDic:
             if cmdDic['-p'] != 'tcp' and cmdDic['-p'] != 'udp':
                 print "port number only supported by tcp or udp protocol, the rule will be ignored"
@@ -25,7 +32,7 @@ def createRule(cmdDic):
             match.sport = cmdDic['-sport']
         rule.add_match(match)
     if '-m' in cmdDic:
-        match = iprule.Match(rule, cmdDic['-m'])
+        match = ipruleTest.Match(rule, cmdDic['-m'])
         if '-src-range' in cmdDic:
             if '-s' in cmdDic:
                 print "multiple '-s' flag not allowed, the rule will be ignored"
@@ -46,7 +53,7 @@ def createRule(cmdDic):
     return rule
 
 def setUp(file):
-    table = iprule.Table(iprule.Table.FILTER)
+    table = ipruleTest.Table(ipruleTest.Table.FILTER)
     with open(file, 'r') as f:
 
         for line in f.readlines():
@@ -74,7 +81,7 @@ def setUp(file):
 
             if args[1] == '-A':
                 chain_name = args[2]
-                chain = iprule.Chain(table, chain_name)
+                chain = ipruleTest.Chain(table, chain_name)
                 chain.append_rule(rule)
                 print "chain_A_len", len(chain._rules)
                 #print "chain name", chain.name
@@ -82,15 +89,21 @@ def setUp(file):
             if args[1] == '-I':
                 chain_name = args[2]
                 chain_position = int(args[3])
-                chain = iprule.Chain(iprule.Table(iprule.Table.FILTER), chain_name)
+                chain = ipruleTest.Chain(ipruleTest.Table(ipruleTest.Table.FILTER), chain_name)
                 chain.insert_rule(rule, chain_position)
                 print "chain_I_len", len(chain._rules)
 
             if args[1] == '-R':
                 chain_name = args[2]
                 chain_position = int(args[3])
-                chain = iprule.Chain(iprule.Table(iprule.Table.FILTER), chain_name)
+                chain = ipruleTest.Chain(ipruleTest.Table(ipruleTest.Table.FILTER), chain_name)
                 chain.replace_rule(rule, chain_position)
                 print "chain_R_len", len(chain._rules)
+
+            if args[1] == '-P':
+                chain_name = args[2]
+                chain = ipruleTest.Chain(table, chain_name)
+                chain.append_rule(rule)
+                print "chain_A_len", len(chain._rules)
 
     return table

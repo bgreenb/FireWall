@@ -1,4 +1,7 @@
 from netaddr import *
+from IPy import IP
+import socket
+import re
 
 class Match(object):
     def __init__(self, name, rule=None):
@@ -26,6 +29,9 @@ class Rule(object):
         self._proto = None
         self._src = None
         self._dst = None
+        self._sgroup = -1
+        self._dgroup = -1
+        self._isDefault = False
 
     def create_match(self, name):
         match = Match(name)
@@ -67,7 +73,19 @@ class Rule(object):
         self._dst = dst
     dst = property(get_dst, set_dst)
 
+    def _get_sgroup(self):
+	    return self._sgroup
 
+    def _set_sgroup(self, group):
+	    self._sgroup = group
+    sgroup = property(_get_sgroup, _set_sgroup)
+
+    def _get_dgroup(self):
+	    return self._dgroup
+
+    def _set_dgroup(self, dgroup):
+	    self._dgroup = dgroup
+    dgroup = property(_get_dgroup, _set_dgroup)
 
 class Chain(object):
 
@@ -166,20 +184,39 @@ class Comparison(object):
                 return True
         return False
 
+    def isDNS(self,str):
+      try:
+        IP(str)
+      except ValueError:
+        return True 
+      return False
+
+    def hasHostname(self,ip):
+      try:
+        socket.gethostbyaddr(str(ip))
+      except:
+        return (False,None)
+      return (True,(socket.gethostbyaddr(str(ip))[0])) 
+
     # ipMatch1 is used to test -s with ip subnet
     def ipMatch1(self, ip, cmpIP):
+        print "IN IPMATCH1"
         if cmpIP == None or cmpIP == '0.0.0.0/0.0.0.0':
+            print "Blank or None cmpIP"
             return True
-        if ip ==None:
+        if ip == None:
             return False
+        if self.isDNS(str(cmpIP)):
+          cmpIP = socket.gethostbyname(str(cmpIP)) 
         if '/' in cmpIP:
             ipset = IPSet([cmpIP])
             if ip in ipset:
                 return True
         else:
             if ip == cmpIP:
+                print "RETURNING TRUE IPMATCH1"
                 return True
-
+        print "RETURING FALSE IPMATCH1"
         return False
 
     #ipMatch2 is used to test ipRange
@@ -197,10 +234,35 @@ class Comparison(object):
 
         return False
 
+    #Test if two ips are from the same group file
+    def groupMatch(self,sIp,dIp,sgroup,dgroup):
+        matchSIp = False 
+        matchDIp = False
+
+        with open('%s.txt' % sgroup) as sgFile:
+          matchSList = [self.ipMatch1(sIp,cmpIp.rstrip()) for cmpIp in sgFile] 
+          print "matchSLIST: ", matchSList
+          if True in matchSList:
+            matchSIp = True
+          sgFile.closed
+
+        with open('%s.txt' % dgroup) as dgFile:
+          matchDList = [self.ipMatch1(dIp,cmpIp.rstrip()) for cmpIp in dgFile] 
+          print "matchDLIST: ", matchDList
+          if True in matchDList:
+            matchDIp = True
+          dgFile.closed
+
+        if matchSIp and matchDIp:
+            return True 
+        else:
+            return False
+
     def compare(self, proto, tsIp=None, tdIp=None, tsPort=-1, tdPort=-1):
 
         matched_rule = {}
         for key in self.table.chains:
+            print "KEY ",key
             chain = self.table.chains[key]
 
             for rule in chain._rules:
@@ -210,6 +272,10 @@ class Comparison(object):
                 drange = []
                 src = rule.src
                 dst = rule.dst
+                sgroup = rule.sgroup
+                print "SGROUP: ", rule.sgroup
+                dgroup = rule.dgroup
+                print "DGROUP: ", rule.dgroup
 
                 if proto != rule.protocol:
                     continue
@@ -223,16 +289,42 @@ class Comparison(object):
                         srange = match.src_range.split('-')
                     if 'dst_range' in dir(match):
                         drange = match.dst_range.split('-')
+                    print "RULE.sGROUP ",rule.sgroup
+                    print "RULE.dGROUP ",rule.dgroup
 
-                if self.ipMatch1(tsIp, src) and self.ipMatch1(tdIp, dst) \
-                and self.portMatch(tsPort, sport) and self.portMatch(tdPort, dport) \
-                and self.ipMatch2(tsIp, srange) and self.ipMatch2(tdIp, drange):
-                    matched_rule['src'] = tsIp
-                    matched_rule['dst'] = tdIp
-                    matched_rule['proto'] = rule.protocol
-                    matched_rule['target'] = rule.target
+                    if rule.sgroup != -1: 
+                        print "tsIp=",tsIp
+                        print "tdIp=",tdIp
+                        print "sgroup=",sgroup
+                        print "dgroup=",dgroup
+                        print "ruleSource=", src
+                        print "ruleDst=", dst
 
-                    return matched_rule
+                        if (self.groupMatch(tsIp,tdIp,sgroup,dgroup)) and (self.portMatch(tsPort, sport)) and (self.portMatch(tdPort, dport)): 
+                            matched_rule['src'] = tsIp
+                            matched_rule['dst'] = tdIp
+                            matched_rule['proto'] = rule.protocol
+                            matched_rule['target'] = rule.target
+                            return matched_rule
 
-        return matched_rule
+                    elif rule.sgroup == -1:
+                       print "GOT INTO ELSE"
+                       print "tsIp=",tsIp
+                       print "tdIp=",tdIp
+                       print "sgroup=",sgroup
+                       print "dgroup=",dgroup
+                       print "ruleSource=", src
+                       print "ruleDst=", dst
+                            
+                       if (self.ipMatch1(tsIp, src)) and (self.ipMatch1(tdIp, dst)) \
+                       and (self.portMatch(tsPort, sport)) and (self.portMatch(tdPort, dport)) \
+                       and (self.ipMatch2(tsIp, srange)) and (self.ipMatch2(tdIp, drange)):
+                            matched_rule['src'] = tsIp
+                            matched_rule['dst'] = tdIp
+                            matched_rule['proto'] = rule.protocol
+                            matched_rule['target'] = rule.target
+                            print "TARGET THING2 " , rule.target
+                            return matched_rule
+
+            return matched_rule
 
