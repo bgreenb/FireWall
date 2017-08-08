@@ -1,0 +1,12 @@
+class Plugin:
+    def __init__(self):
+       #Put your initialization stuff here
+    
+    #Must return a boolean
+    def verify(self,ip,group):
+       #Method that is called by the group match function, 
+       #put logic for checking if an ip belongs to a group here
+
+       print "Got in verify of test plugin"
+       return False
+

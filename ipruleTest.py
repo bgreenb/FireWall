@@ -1,7 +1,13 @@
 from netaddr import *
 from IPy import IP
+import itertools
 import socket
 import re
+import json
+import sys
+import os
+
+PLUGINPATH = "plugins"
 
 class Match(object):
     def __init__(self, name, rule=None):
@@ -168,22 +174,97 @@ class Table(object):
         else:
             del self.chains[chain.name]
 
+#Stores all the information for a given group in a group config file and provides an abstraction in case 
+#the format of the group data changes.
+class GroupData(object):
+    def __init__(self,groupFile):
+       file = open(groupFile)
+       self.data = json.JSONDecoder().decode(file.read())
+       file.close()
+
+    def isGroup(self,inputGroup):
+       try:
+          self.data[inputGroup]
+          return True
+       except:
+          return False
+
+    def reload(self,fileName):
+       file = open(fileName)
+       self.data = json.JSONDecoder().decode(file.read())
+       file.close()
+
+    def isIp(self,inputIp,groupName):
+       ipList = self.data[groupName]["IPv4"]
+       for ip in ipList:
+          if ip == inputIp:
+             return True
+       return False
+
+    def isFQDN(self,inputIp,groupName):
+       try:
+          inputFQDN = socket.gethostbyaddr(str(inputIp))[0]
+       except:
+          return False
+
+       fqdnList = self.data[groupName]["FQDN"]
+
+       for fqdn in fqdnList:
+          if fqdn == inputFQDN:
+             return True
+       return False
+
+    def isSubnet(self,inputIp,groupName):
+       inputIp = IPAddress(inputIp)
+       subList = self.data[groupName]["Subnet"]
+
+       for subnet in subList:
+          try:
+             expandSub = IPNetwork(subnet)
+          except:
+             continue
+          for ip in expandSub:
+             if ip == inputIp:
+                return True
+       return False
+
+
 class Comparison(object):
-    def __init__(self, table):
+    def __init__(self, table,groupData):
         self.table = table
+        self.groupData = groupData
+        self.plugins = {}
+        self.loadPlugins(self.plugins)
+
+    def loadPlugins(self,pluginList):
+       sys.path.insert(0,PLUGINPATH)
+       for file in os.listdir(PLUGINPATH):
+          fname,ext = os.path.splitext(file)
+          if ext == ".py":
+              mod  = __import__(fname)
+              pluginList[fname] = mod.Plugin()
+       sys.path.pop(0) 
+       print "Plugins",pluginList
 
     def portMatch(self, portnum, portRange):
         ports = [int(s) for s in portRange]
+        print "INPUT PORTS",ports
+        print "COMPARISION PORT",portnum 
         if len(ports) == 0 or portnum == -1:
+            print "PORTS MATCHED0"
             return True
         elif len(ports) == 1:
             if portnum == ports[0]:
+                print "PORTS MATCHED1"
                 return True
         else:
             if portnum >= ports[0] and portnum <= ports[1]:
+                print "PORTS MATCHED"
                 return True
+        print "PORTS NOT MATCHED"
         return False
 
+    #Is the input a valid ip address? If so return false as it can't be a dns hostname.
     def isDNS(self,str):
       try:
         IP(str)
@@ -191,6 +272,7 @@ class Comparison(object):
         return True 
       return False
 
+    #Take in an ip and get the right hostname, use this to compare to a hostname that might be in a group list. 
     def hasHostname(self,ip):
       try:
         socket.gethostbyaddr(str(ip))
@@ -235,28 +317,51 @@ class Comparison(object):
         return False
 
     #Test if two ips are from the same group file
-    def groupMatch(self,sIp,dIp,sgroup,dgroup):
-        matchSIp = False 
-        matchDIp = False
+    def groupMatch(self,sIp,dIp,sGroup,dGroup):
+       sGroupMatch = False
+       dGroupMatch = False
 
-        with open('%s.txt' % sgroup) as sgFile:
-          matchSList = [self.ipMatch1(sIp,cmpIp.rstrip()) for cmpIp in sgFile] 
-          print "matchSLIST: ", matchSList
-          if True in matchSList:
-            matchSIp = True
-          sgFile.closed
-
-        with open('%s.txt' % dgroup) as dgFile:
-          matchDList = [self.ipMatch1(dIp,cmpIp.rstrip()) for cmpIp in dgFile] 
-          print "matchDLIST: ", matchDList
-          if True in matchDList:
-            matchDIp = True
-          dgFile.closed
-
-        if matchSIp and matchDIp:
-            return True 
-        else:
-            return False
+       if (self.groupData.isGroup(sGroup) == False) or (self.groupData.isGroup(dGroup) == False):
+          return False
+       else:
+          #Verify the source ip has a match in some group
+          #self.groupData.__getattribute__('isIp')
+          if (self.groupData.isIp(sIp,sGroup)):
+             sGroupMatch = True
+          elif (self.groupData.isFQDN(sIp,sGroup)):
+             sGroupMatch = True
+          elif (self.groupData.isSubnet(sIp,sGroup)):
+             sGroupMatch = True
+          #Assume that each plugin vas a verify method for checking if an ip is in a group and use it
+          else: 
+             for plugin in self.plugins.values():
+                try:
+                   if plugin.verify(sIp,sGroup):
+                      sGroupMatch = True 
+                except:
+                   print "Error in plugin:",self.plugins.keys()[self.plugins.values().index(plugin)], "when matching source group"
+                   continue
+          #Verify the destination ip has a match in some group
+          if (self.groupData.isIp(dIp,dGroup)):
+             dGroupMatch = True
+          elif (self.groupData.isFQDN(dIp,dGroup)):
+             dGroupMatch = True
+          elif (self.groupData.isSubnet(dIp,dGroup)):
+             dGroupMatch = True
+          #Is the destination ip and group verified by a plugin method?
+          else: 
+             for plugin in self.plugins.values():
+                try:
+                   if plugin.verify(dIp,dGroup):
+                      dGroupMatch = True 
+                except:
+                   print "Error in plugin:",self.plugins.keys()[self.plugins.values().index(plugin)], "when matching destination group"
+                   continue
+          
+          if sGroupMatch and dGroupMatch:
+             return True
+          else:
+             return False
 
     def compare(self, proto, tsIp=None, tdIp=None, tsPort=-1, tdPort=-1):
 
@@ -297,10 +402,15 @@ class Comparison(object):
                         print "tdIp=",tdIp
                         print "sgroup=",sgroup
                         print "dgroup=",dgroup
+                        print "sport=",sport
+                        print "dport=",dport
+                        print "tsPort=",tsPort
+                        print "tdPort=",tdPort
                         print "ruleSource=", src
                         print "ruleDst=", dst
 
                         if (self.groupMatch(tsIp,tdIp,sgroup,dgroup)) and (self.portMatch(tsPort, sport)) and (self.portMatch(tdPort, dport)): 
+                            
                             matched_rule['src'] = tsIp
                             matched_rule['dst'] = tdIp
                             matched_rule['proto'] = rule.protocol
