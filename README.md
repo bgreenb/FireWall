@@ -13,7 +13,7 @@
    ```python
      imp.load_source('firewall_v3','$PathToFirewall/FireWall/apps/firewall_v3.py')
    ```
-   into your /ryu/cmd/manager.py file in the part right after the modules are loaded
+   into your /ryu/cmd/manager.py file in the part right after where the modules are loaded
 
 ### Running the Firewall
 * Use the included GroupGen utility to make your group config file 
