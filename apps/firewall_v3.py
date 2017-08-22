@@ -5,7 +5,7 @@ and support port match rules
 """
 import sys
 import os
-#sys.path.append("/home/bsg/FireWallGit")
+sys.path.append("/home/bsg/FireWall")
 
 from ryu.base import app_manager
 from ryu import cfg
@@ -33,13 +33,13 @@ from Crypto.Signature import PKCS1_PSS
 APP_COOKIE = 0
 LIFETIME_ROUTE = 60  #time to delete entries when there are no pkt_in
 HARD_LIFETIME = 600  #time to delete entries
-PROTOCOLS = {1: 'icmp', 2: 'igmp', 6: 'tcp', 17: 'udp'}
+PROTOCOLS = {1: 'icmp', 2: 'igmp', 6: 'tcp', 17: 'udp',89:'ospf'}
 CONF = cfg.CONF
 CONF.register_cli_opts([cfg.StrOpt('Groups',default='Group.conf',help='Group config file location'),cfg.StrOpt('SigFile',default='Group.sig',help='Group signature file location'),cfg.StrOpt('Key',default=expanduser("~")+"/.ssh/id_rsa.pub",help='public key for verifying the config file'),cfg.StrOpt('Rules',default='Rules.txt',help='iptables rules for the controller')])
 
 
 class MyFireWall(app_manager.RyuApp):
-    OFP_VERSIONS = [ofproto_v1_4.OFP_VERSION]
+    OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION,ofproto_v1_4.OFP_VERSION]
 
     def __init__(self, *args, **kwargs):
         super(MyFireWall, self).__init__(*args, **kwargs)

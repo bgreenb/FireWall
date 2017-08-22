@@ -194,11 +194,22 @@ class GroupData(object):
        self.data = json.JSONDecoder().decode(file.read())
        file.close()
 
+    def checkRe(self,input,pattern):
+       if input == pattern and ((pattern[0] != "'") and (pattern[len(pattern) - 1] != "'")) :
+          return True
+       elif ((pattern[0] == "'") and (pattern[len(pattern) - 1] == "'")):
+          rePattern = pattern[1:(len(pattern) - 1)]
+          if re.match(rePattern,input) != None:
+             print("RE MATCH")
+             return True
+       return False
+       
+
     def isIp(self,inputIp,groupName):
        ipList = self.data[groupName]["IPv4"]
        for ip in ipList:
-          if ip == inputIp:
-             return True
+         if self.checkRe(inputIp,ip):
+            return True
        return False
 
     def isFQDN(self,inputIp,groupName):
@@ -210,7 +221,7 @@ class GroupData(object):
        fqdnList = self.data[groupName]["FQDN"]
 
        for fqdn in fqdnList:
-          if fqdn == inputFQDN:
+          if self.checkRe(inputFQDN,fqdn):
              return True
        return False
 
