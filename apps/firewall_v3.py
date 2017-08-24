@@ -261,7 +261,7 @@ class MyFireWall(app_manager.RyuApp):
                 udp_sport = pkt_udp.src_port
                 udp_dport = pkt_udp.dst_port
 
-                matched_rule = self.comparison.compare(PROTOCOLS[ipProto], srcIp, dstIp, udp_sport, tcp_dport)
+                matched_rule = self.comparison.compare(PROTOCOLS[ipProto], srcIp, dstIp, udp_sport, udp_dport)
                 print "matched_rule: ", matched_rule
 
                 if not matched_rule:
@@ -269,7 +269,7 @@ class MyFireWall(app_manager.RyuApp):
 
                 if matched_rule['target'] == 'ACCEPT':
                     match = parser.OFPMatch(ipv4_src=srcIp, ipv4_dst=dstIp, ip_proto=ipProto,
-                                            udp_src=udp_sport, udp_dst=tcp_dport, eth_type=0x800)
+                                            udp_src=udp_sport, udp_dst=udp_dport, eth_type=0x800)
                     self.add_flow(datapath, 1, match, actions_forward, LIFETIME_ROUTE)
                     #  accept, forward action
                 elif matched_rule['target'] == 'DROP':
