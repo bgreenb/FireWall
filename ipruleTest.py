@@ -214,16 +214,20 @@ class GroupData(object):
 
     def isFQDN(self,inputIp,groupName):
        try:
-          inputFQDN = socket.gethostbyaddr(str(inputIp))[0]
+          inputFQDN = socket.getfqdn(str(inputIp))
        except:
           return False
-
+       
        fqdnList = self.data[groupName]["FQDN"]
 
-       for fqdn in fqdnList:
-          if self.checkRe(inputFQDN,fqdn):
-             return True
-       return False
+       if fqdnList:
+          for fqdn in fqdnList:
+             if fqdn:
+                if self.checkRe(inputFQDN,fqdn):
+                   return True
+          return False
+       else:
+          return False
 
     def isSubnet(self,inputIp,groupName):
        inputIp = IPAddress(inputIp)
@@ -245,7 +249,10 @@ class Comparison(object):
         self.table = table
         self.groupData = groupData
         self.plugins = {}
-        self.loadPlugins(self.plugins)
+        try:
+           self.loadPlugins(self.plugins)
+        except:
+           pass
 
     def loadPlugins(self,pluginList):
        sys.path.insert(0,PLUGINPATH)
