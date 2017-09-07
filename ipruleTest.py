@@ -207,9 +207,11 @@ class GroupData(object):
 
     def isIp(self,inputIp,groupName):
        ipList = self.data[groupName]["IPv4"]
+
        for ip in ipList:
-         if self.checkRe(inputIp,ip):
-            return True
+          if ip:
+             if self.checkRe(inputIp,ip):
+                return True
        return False
 
     def isFQDN(self,inputIp,groupName):
