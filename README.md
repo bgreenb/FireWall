@@ -8,31 +8,29 @@
 
 ### Compatibility 
 
-* Written only for Python 2.7 for now
+* Written only for Python 2 for now
 
-* Tested only on a CentOS 6.8 based system, but should work on most linux distributions
+* Tested on systems running CentOS 6.8 and 7 with a test network using a Pica8 3290 openflow capable switch 
+
 ### Installation 
 1. This program uses the [Ryu](https://github.com/osrg/ryu) controller framework, so make sure that is installed first. 
-2.  **Required Python Packages from PyPI :**
+2.  **Required Additional Python Packages from PyPI :**
   
 * Pycryptodome 
 * IPy 
 * netaddr 
-3.  To allow command line arguments to work for the ryu app, add 
 
-   ```python
-     imp.load_source('firewall_v3','$PathToFirewall/FireWall/apps/firewall_v3.py')
-   ```
-   into your /ryu/cmd/manager.py file in the part right after where the modules are loaded. 
-   In addition the imp module should be imported in manager.py as well.
+3. Depending on what type of networking you are running the controller on, you might have to register the controller's ip address on the switch side. In my case I had to do this, otherwise no packets would be sent to the controller.
 
 ### Running the Firewall
 * Use the included GroupGen utility to make your group config file 
 * Start the controller using:
 ```shell 
-ryu-manager firewall_v3.py --Rules YourRules.txt --Groups YourGroupConfig.conf --SigFile YourGroupSignature.sig --Key YourPublicKey.pub --verbose
+ryu-manager firewall_v3.py --user-flags flags.py --Rules YourRules.txt --Groups YourGroupConfig.conf --SigFile YourGroupSignature.sig --Key YourPublicKey.pub --verbose
 
 ```
+* The user flags argument is used to tell Ryu what type of arguments to expect
+for the controller such as where the rules, config, and signature files are located.
 * The public key provided to the --Key argument will be used to verify the group config file against the generated signature passed in by --SigFile
 
 ### Writing Plugins 
